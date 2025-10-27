@@ -1,7 +1,7 @@
 {
   "name": "invy+",
   "short_name": "invy+",
-  "start_url": "./invy6.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f5f7fa",
   "theme_color": "#3498db",

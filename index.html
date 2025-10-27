@@ -1,1 +1,2275 @@
-<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>invy+</title><link rel="manifest" href="manifest.json"></head><body style="direction:rtl;font-family:system-ui;"><a href="invy6.html">افتح التطبيق</a></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Investment Fund Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --light: #ecf0f1;
+            --dark: #34495e;
+            --card-bg: #ffffff;
+            --body-bg: #f5f7fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        body {
+            background-color: var(--body-bg);
+            color: #333;
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 15px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--dark));
+            color: white;
+            padding: 15px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .date-display {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-title i {
+            color: var(--secondary);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        
+        .stat-item {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .profit {
+            color: var(--success);
+        }
+        
+        .loss {
+            color: var(--danger);
+        }
+        
+        .chart-container {
+            height: 250px;
+            margin-top: 10px;
+        }
+        
+        .transaction-list {
+            list-style: none;
+        }
+        
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .transaction-details {
+            flex: 1;
+        }
+        
+        .transaction-type {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .transaction-date {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .transaction-units {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .transaction-amount {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .floating-buttons {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .fab {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .fab:active {
+            transform: scale(0.95);
+        }
+        
+        .fab-buy {
+            background: var(--success);
+        }
+        
+        .fab-sell {
+            background: var(--danger);
+        }
+        
+        .fab-add {
+            background: var(--secondary);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+        
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            background: white;
+            border-radius: 10px;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #ddd;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 15px 10px;
+            background: var(--light);
+            border-radius: 10px;
+        }
+        
+        .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .returns-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .return-item {
+            background: var(--light);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .return-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .return-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .investment-list {
+            list-style: none;
+        }
+        
+        .investment-item {
+            display: flex;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+            flex-direction: column;
+        }
+        
+        .investment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .investment-name {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+        
+        .investment-details {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .investment-value {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .edit-btn {
+            color: var(--secondary);
+        }
+        
+        .delete-btn {
+            color: var(--danger);
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                max-width: 700px;
+                margin: 0 auto;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .pl-percentage {
+            font-size: 0.9rem;
+            margin-top: 3px;
+            font-weight: 600;
+        }
+        
+        .update-btn {
+            background: var(--warning);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .chart-card {
+            height: 300px;
+        }
+        
+        .mini-chart-container {
+            height: 60px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .investment-performance {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .performance-details {
+            flex: 1;
+        }
+        
+        .update-value-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            align-items: center;
+        }
+        
+        .update-value-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .update-value-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .investment-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+        
+        .expected-returns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .expected-return-item {
+            background: var(--light);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+        }
+        
+        .expected-return-value {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 3px;
+        }
+        
+        .expected-return-label {
+            font-size: 0.75rem;
+            color: #666;
+        }
+        
+        .transactions-list {
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .transaction-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .transaction-row:last-child {
+            border-bottom: none;
+        }
+        
+        .transaction-info {
+            flex: 1;
+        }
+        
+        .transaction-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .transaction-action-btn {
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            padding: 3px;
+        }
+        
+        .transaction-edit-btn {
+            color: var(--secondary);
+        }
+        
+        .transaction-delete-btn {
+            color: var(--danger);
+        }
+        
+        .add-transaction-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .performance-breakdown {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+<!-- invy+ Auth & Sync (PRO) -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
+
+  const firebaseConfig = {"apiKey": "AIzaSyDoHNMk8Y30ak6_99cn1GoRtugSjdaOuYY", "authDomain": "invyplus-d9498.firebaseapp.com", "projectId": "invyplus-d9498", "storageBucket": "invyplus-d9498.appspot.com", "messagingSenderId": "233464045025", "appId": "1:233464045025:web:3b843eaa9dee84a99bc6a0"};
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  window.firebaseApp = app;
+  window.firebaseAuth = auth;
+  window.firebaseDb = db;
+
+  function log(msg){ console.log('[invy+] ' + msg); }
+
+  async function syncToFirestore() {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      log('Syncing data to Firestore for user ' + user.uid + ' ...');
+      const investments = JSON.parse(localStorage.getItem('investmentData') || '[]');
+      await updateDoc(doc(db, 'users', user.uid), { investments });
+      log('Sync to Firestore complete.');
+    } catch (err) {
+      try {
+        const investments = JSON.parse(localStorage.getItem('investmentData') || '[]');
+        await setDoc(doc(db, 'users', user.uid), { investments });
+        log('Sync to Firestore complete (setDoc).');
+      } catch (e) {
+        console.error('[invy+] Sync failed:', e);
+      }
+    }
+  }
+
+  async function loadFromFirestore() {
+    const user = auth.currentUser;
+    if (!user) return;
+    try {
+      log('Loading data from Firestore for user ' + user.uid + ' ...');
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.investments) {
+          localStorage.setItem('investmentData', JSON.stringify(data.investments));
+          log('Data loaded from Firestore.');
+        } else {
+          log('No investments field on Firestore doc.');
+        }
+      } else {
+        log('No Firestore doc for user yet.');
+      }
+    } catch (e) {
+      console.error('[invy+] Load failed:', e);
+    }
+  }
+
+  function setRemember(flag){ localStorage.setItem('invy_remember', flag ? '1' : '0'); }
+  function getRemember(){ return localStorage.getItem('invy_remember') === '1'; }
+
+  window.invysignin = {
+    emailSignIn: async (email, pw, remember) => {
+      const res = await signInWithEmailAndPassword(auth, email, pw);
+      if (remember) setRemember(true);
+      return res;
+    },
+    emailSignUp: async (email, pw, remember) => {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await setDoc(doc(db, 'users', cred.user.uid), { investments: []});
+      if (remember) setRemember(true);
+      return cred;
+    },
+    googleSignIn: async (remember) => {
+      const provider = new GoogleAuthProvider();
+      const res = await signInWithPopup(auth, provider);
+      if (remember) setRemember(true);
+      return res;
+    },
+    signOutAndSync: async () => {
+      const user = auth.currentUser;
+      if (user) {
+        await syncToFirestore();
+      }
+      setRemember(false);
+      await signOut(auth);
+      return;
+    },
+    registerBiometric: async () => {
+      const user = auth.currentUser;
+      if (!user) throw new Error('Sign in first to register biometric.');
+      if (!window.PublicKeyCredential) throw new Error('WebAuthn not supported.');
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const publicKey = {
+        challenge,
+        rp: { name: "invy+" },
+        user: {
+          id: new TextEncoder().encode(user.uid),
+          name: user.email || user.uid,
+          displayName: user.displayName || user.email || user.uid
+        },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+        authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+        timeout: 60000,
+        attestation: "none"
+      };
+      const cred = await navigator.credentials.create({ publicKey });
+      if (!cred) throw new Error('Credential creation cancelled');
+      const id = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+      await setDoc(doc(db, 'webauthn', user.uid), { credentialId: id }, { merge: true });
+      return true;
+    }
+  };
+
+  onAuthStateChanged(auth, async user => {
+    if (user) {
+      log('User signed in: ' + user.uid);
+      const overlay = document.getElementById('invy-auth-overlay');
+      if (overlay) overlay.style.display = 'none';
+      await loadFromFirestore();
+      if (window.updateUI) try { window.updateUI(); } catch(e){ console.warn(e); }
+      addControlButtons();
+    } else {
+      log('User signed out');
+      const overlay = document.getElementById('invy-auth-overlay');
+      if (overlay && !getRemember()) overlay.style.display = 'flex';
+      addControlButtons();
+    }
+  });
+
+  function addControlButtons() {
+    const header = document.querySelector('header') || document.querySelector('.header-content') || document.body;
+    if (!header) return;
+    const container = header.querySelector('.invy-controls') || document.createElement('div');
+    container.className = 'invy-controls';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '8px';
+    if (!document.getElementById('invy-sync-btn')) {
+      const syncBtn = document.createElement('button');
+      syncBtn.id = 'invy-sync-btn';
+      syncBtn.textContent = 'Sync';
+      syncBtn.style.padding = '8px 10px';
+      syncBtn.style.borderRadius = '8px';
+      syncBtn.style.background = '#3498db';
+      syncBtn.style.color = 'white';
+      syncBtn.style.border = 'none';
+      syncBtn.style.cursor = 'pointer';
+      syncBtn.addEventListener('click', async () => {
+        try {
+          log('Manual sync triggered');
+          await syncToFirestore();
+          alert('Sync complete');
+        } catch(e) { alert('Sync failed: ' + e.message); }
+      });
+      container.appendChild(syncBtn);
+    }
+    if (!document.getElementById('invy-signout-btn')) {
+      const btn = document.createElement('button');
+      btn.id = 'invy-signout-btn';
+      btn.textContent = 'Sign out';
+      btn.style.padding = '8px 10px';
+      btn.style.borderRadius = '8px';
+      btn.style.background = '#e74c3c';
+      btn.style.color = 'white';
+      btn.style.border = 'none';
+      btn.style.cursor = 'pointer';
+      btn.addEventListener('click', async () => {
+        try {
+          log('Sign out clicked — syncing then signing out...');
+          await window.invysignin.signOutAndSync();
+          log('Signed out.');
+          window.location.reload();
+        } catch (e) {
+          console.error('Sign out failed:', e);
+          alert('Sign out failed: ' + e.message);
+        }
+      });
+      container.appendChild(btn);
+    }
+    if (!header.querySelector('.invy-controls')) header.appendChild(container);
+  }
+
+  window.invySync = { syncToFirestore, loadFromFirestore };
+</script>
+
+<link rel="manifest" href="manifest.json">
+</head>
+<body>
+<!-- invy+ Auth Overlay (PRO) -->
+<style>
+  :root { --primary: #3498db; --bg-light: #ffffff; --bg-dark: #0f1720; --text-light: #222; --text-dark: #eee; }
+  @media (prefers-color-scheme: dark) {
+    :root { background-color: var(--bg-dark); color: var(--text-dark); }
+    .invy-card { background: #0b1220; color: var(--text-dark); border: 1px solid rgba(255,255,255,0.04); }
+  }
+  #invy-auth-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:9999; }
+  .invy-card { width:420px; max-width:95%; background:var(--bg-light); padding:18px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.12); font-family:inherit; color:var(--text-light); }
+  .invy-card h2{ margin:0 0 8px 0; font-size:1.2rem; color:var(--primary);}
+  .invy-card input{ width:100%; padding:10px;margin-bottom:8px;border-radius:8px;border:1px solid #ddd;}
+  .invy-btn{ padding:10px 12px;border-radius:8px;border:none; cursor:pointer; font-weight:600;}
+  .invy-primary{ background:var(--primary);color:white;}
+  .invy-google{ background:white;border:1px solid #ddd;}
+  .invy-row{ display:flex; gap:8px; align-items:center; margin-top:6px; }
+  #invy-footer{ font-size:0.85rem; color:#666; margin-top:10px;}
+  label.rem{ font-size:0.9rem; color:#444; }
+</style>
+<div id="invy-auth-overlay" style="display:flex;">
+  <div class="invy-card">
+    <h2>invy+</h2>
+    <div>
+      <input id="invy-email" type="email" placeholder="Email" />
+      <input id="invy-pw" type="password" placeholder="Password" />
+      <div class="invy-row">
+        <button class="invy-btn invy-primary" id="invy-signin-btn">Sign in</button>
+        <button class="invy-btn" id="invy-signup-btn" style="background:#2ecc71;color:white;">Create</button>
+      </div>
+      <div class="invy-row" style="margin-top:10px;">
+        <button class="invy-btn invy-google" id="invy-google-btn">Sign in with Google</button>
+        <button class="invy-btn" id="invy-register-biometric" title="Register Face ID/Touch ID">Register Biometric</button>
+      </div>
+      <div style="margin-top:10px;">
+        <input type="checkbox" id="invy-remember"><label for="invy-remember" class="rem"> Remember me</label>
+      </div>
+      <div id="invy-footer">You can export/import backups from the app after signing in. Use Sync to push data to Firestore. Theme follows your device settings.</div>
+    </div>
+  </div>
+</div>
+<script>
+  function initAuthUI() {
+    const emailInput = document.getElementById('invy-email');
+    const pwInput = document.getElementById('invy-pw');
+    const rememberBox = document.getElementById('invy-remember');
+    try { rememberBox.checked = localStorage.getItem('invy_remember') === '1'; } catch(e){}
+    document.getElementById('invy-signin-btn').addEventListener('click', async () => {
+      try {
+        await window.invysignin.emailSignIn(emailInput.value, pwInput.value, rememberBox.checked);
+        document.getElementById('invy-auth-overlay').style.display = 'none';
+      } catch (e) { alert('Sign in failed: ' + (e.message || e)); }
+    });
+    document.getElementById('invy-signup-btn').addEventListener('click', async () => {
+      try {
+        await window.invysignin.emailSignUp(emailInput.value, pwInput.value, rememberBox.checked);
+        document.getElementById('invy-auth-overlay').style.display = 'none';
+      } catch (e) { alert('Sign up failed: ' + (e.message || e)); }
+    });
+    document.getElementById('invy-google-btn').addEventListener('click', async () => {
+      try {
+        await window.invysignin.googleSignIn(rememberBox.checked);
+        document.getElementById('invy-auth-overlay').style.display = 'none';
+      } catch (e) { alert('Google sign-in failed: ' + (e.message || e)); }
+    });
+    document.getElementById('invy-register-biometric').addEventListener('click', async () => {
+      try {
+        await window.invysignin.registerBiometric();
+        alert('Biometric credential registered.');
+      } catch (e) { alert('Biometric failed: ' + (e.message || e)); }
+    });
+  }
+  const waitForInvy = setInterval(() => {
+    if (window.invysignin) {
+      clearInterval(waitForInvy);
+      initAuthUI();
+      console.log('[invy+] Auth UI initialized (PRO).');
+    }
+  }, 300);
+</script>
+
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>Investment Tracker</h1>
+                <div class="date-display" id="current-date"></div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="overview">Overview</div>
+            <div class="tab" data-tab="investments">Investments</div>
+            <div class="tab" data-tab="analytics">Analytics</div>
+        </div>
+        
+        <div class="tab-content active" id="overview-tab">
+            <div class="card">
+                <div class="card-title">
+                    <span>Portfolio Summary</span>
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-value">-</div>
+                        <div class="stat-label">Total Value</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-units">-</div>
+                        <div class="stat-label">Total Units</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="current-unit-value">-</div>
+                        <div class="stat-label">Unit Value</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-investment">-</div>
+                        <div class="stat-label">Total Invested</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="total-gain-loss">-</div>
+                        <div class="stat-label">Gain/Loss</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="return-percent">-</div>
+                        <div class="stat-label">Return %</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-grid">
+                <div class="card">
+                    <div class="card-title">
+                        <span>Portfolio Allocation</span>
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="allocation-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-title">
+                        <span>Investment Growth</span>
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="value-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <span>Returns Analysis</span>
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="returns-grid">
+                    <div class="return-item">
+                        <div class="return-value" id="daily-return">-</div>
+                        <div class="return-label">Daily Return</div>
+                    </div>
+                    <div class="return-item">
+                        <div class="return-value" id="monthly-return">-</div>
+                        <div class="return-label">Monthly Return</div>
+                    </div>
+                    <div class="return-item">
+                        <div class="return-value" id="annual-return">-</div>
+                        <div class="return-label">Annual Return</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="investments-tab">
+            <div class="card">
+                <div class="card-title">
+                    <span>Your Investments</span>
+                    <i class="fas fa-list"></i>
+                </div>
+                <ul class="investment-list" id="investment-list">
+                    <!-- Investments will be populated here -->
+                </ul>
+                <div class="empty-state" id="empty-investments" style="display: none;">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <h3>No Investments Yet</h3>
+                    <p>Add your first investment to get started</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="analytics-tab">
+            <div class="card">
+                <div class="card-title">
+                    <span>Performance Metrics</span>
+                    <i class="fas fa-chart-pie"></i>
+                </div>
+                <div class="performance-metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="avg-unit-cost">-</div>
+                        <div class="metric-label">Avg. Unit Cost</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="highest-unit">-</div>
+                        <div class="metric-label">Highest Unit Value</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="lowest-unit">-</div>
+                        <div class="metric-label">Lowest Unit Value</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card chart-card">
+                <div class="card-title">
+                    <span>Investment Performance Comparison</span>
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="performance-chart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">
+                    <span>Return Analysis</span>
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="chart-container">
+                    <canvas id="return-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="floating-buttons">
+        <div class="fab fab-add" id="add-investment-btn">
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Investment Modal -->
+    <div class="modal" id="investment-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-title">Add Investment</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="investment-form">
+                <input type="hidden" id="investment-id">
+                <div class="form-group">
+                    <label class="form-label">Investment Name</label>
+                    <input type="text" class="form-input" id="investment-name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" id="investment-date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount Invested (EGP)</label>
+                    <input type="number" class="form-input" id="investment-amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Units Purchased</label>
+                    <input type="number" class="form-input" id="investment-units" step="0.001" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unit Value (EGP)</label>
+                    <input type="number" class="form-input" id="investment-unit-value" step="0.01" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="form-submit-btn">Add Investment</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Update Investment Value Modal -->
+    <div class="modal" id="update-value-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Update Investment Value</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="update-value-form">
+                <input type="hidden" id="update-investment-id">
+                <div class="form-group">
+                    <label class="form-label" id="update-investment-name">Investment Name</label>
+                    <input type="number" class="form-input" id="update-unit-value" step="0.01" required placeholder="Enter new unit value">
+                </div>
+                <button type="submit" class="btn btn-primary">Update Value</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Transaction Modal -->
+    <div class="modal" id="transaction-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="transaction-modal-title">Add Transaction</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="transaction-form">
+                <input type="hidden" id="transaction-investment-id">
+                <input type="hidden" id="transaction-index">
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" id="transaction-date" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Amount Invested (EGP)</label>
+                    <input type="number" class="form-input" id="transaction-amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Units Purchased</label>
+                    <input type="number" class="form-input" id="transaction-units" step="0.001" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Unit Value (EGP)</label>
+                    <input type="number" class="form-input" id="transaction-unit-value" step="0.01" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="transaction-submit-btn">Add Transaction</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Initialize data with sample investments if none exists
+        function initializeData() {
+            if (!localStorage.getItem('investmentData')) {
+                const sampleData = [
+                    {
+                        id: 1,
+                        name: "Egyptian Fund A",
+                        transactions: [
+                            { date: "2025-09-29", amount: 19300.91, units: 31, unitValue: 622.61 }
+                        ],
+                        currentUnitValue: 647.28,
+                        currentValue: 20065.68,
+                        history: [
+                            { date: "2025-09-29", unitValue: 622.61, totalValue: 20065.68 },
+                            { date: "2025-10-05", unitValue: 630.45, totalValue: 19543.95 },
+                            { date: "2025-10-12", unitValue: 625.20, totalValue: 19381.20 },
+                            { date: "2025-10-19", unitValue: 640.10, totalValue: 19843.10 },
+                            { date: "2025-10-26", unitValue: 647.28, totalValue: 20065.68 }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        name: "Egyptian Fund B",
+                        transactions: [
+                            { date: "2025-10-06", amount: 19217.90, units: 26, unitValue: 739.15 }
+                        ],
+                        currentUnitValue: 761.61,
+                        currentValue: 29702.79,
+                        history: [
+                            { date: "2025-10-06", unitValue: 739.15, totalValue: 19217.90 },
+                            { date: "2025-10-13", unitValue: 745.80, totalValue: 19390.80 },
+                            { date: "2025-10-20", unitValue: 752.30, totalValue: 19559.80 },
+                            { date: "2025-10-27", unitValue: 758.90, totalValue: 19731.40 },
+                            { date: "2025-11-03", unitValue: 761.61, totalValue: 19801.86 }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        name: "Egyptian Fund C",
+                        transactions: [
+                            { date: "2025-10-19", amount: 9438.80, units: 10, unitValue: 943.88 }
+                        ],
+                        currentUnitValue: 945.37,
+                        currentValue: 14180.55,
+                        history: [
+                            { date: "2025-10-19", unitValue: 943.88, totalValue: 9438.80 },
+                            { date: "2025-10-26", unitValue: 946.20, totalValue: 9462.00 },
+                            { date: "2025-11-02", unitValue: 944.50, totalValue: 9445.00 },
+                            { date: "2025-11-09", unitValue: 947.80, totalValue: 9478.00 },
+                            { date: "2025-11-16", unitValue: 945.37, totalValue: 9453.70 }
+                        ]
+                    }
+                ];
+                localStorage.setItem('investmentData', JSON.stringify(sampleData));
+            }
+            
+            // Initialize returns history if not exists
+            if (!localStorage.getItem('returnsHistory')) {
+                const today = new Date().toISOString().split('T')[0];
+                const returnsHistory = {
+                    [today]: {
+                        daily: 0.25,
+                        monthly: 3.2,
+                        annual: 15.8
+                    }
+                };
+                localStorage.setItem('returnsHistory', JSON.stringify(returnsHistory));
+            }
+        }
+
+        // Get investment data from localStorage
+        function getInvestmentData() {
+            return JSON.parse(localStorage.getItem('investmentData')) || [];
+        }
+
+        // Save investment data to localStorage
+        function saveInvestmentData(data) {
+            localStorage.setItem('investmentData', JSON.stringify(data));
+        }
+
+        // Get returns history from localStorage
+        function getReturnsHistory() {
+            return JSON.parse(localStorage.getItem('returnsHistory')) || {};
+        }
+
+        // Save returns history to localStorage
+        function saveReturnsHistory(history) {
+            localStorage.setItem('returnsHistory', JSON.stringify(history));
+        }
+
+        // Format currency for display
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-EG', {
+                style: 'currency',
+                currency: 'EGP',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        // Format percentage for display
+        function formatPercentage(value) {
+            return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+        }
+
+        // Format date for display
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+        }
+
+        // Calculate days between two dates
+        function daysBetween(date1, date2) {
+            const oneDay = 24 * 60 * 60 * 1000; // hours*minutes*seconds*milliseconds
+            const firstDate = new Date(date1);
+            const secondDate = new Date(date2);
+            return Math.round(Math.abs((firstDate - secondDate) / oneDay));
+        }
+
+        // Calculate P/L percentage for an investment
+        function calculatePLPercentage(investment) {
+            const totalInvestment = investment.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+            const gainLoss = investment.currentValue - totalInvestment;
+            return (gainLoss / totalInvestment) * 100;
+        }
+
+        // Calculate expected returns for an investment based on average daily performance
+        function calculateExpectedReturns(investment) {
+            const totalInvestment = investment.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+            const totalUnits = investment.transactions.reduce((sum, transaction) => sum + transaction.units, 0);
+            const avgUnitCost = totalInvestment / totalUnits;
+            
+            // Get the earliest transaction date
+            const earliestDate = new Date(Math.min(...investment.transactions.map(t => new Date(t.date))));
+            const today = new Date();
+            
+            // Calculate days held
+            const daysHeld = daysBetween(earliestDate, today);
+            
+            // Calculate actual return so far
+            const actualReturn = (investment.currentValue - totalInvestment) / totalInvestment;
+            
+            // Calculate average daily return (compounded daily)
+            let avgDailyReturn = 0;
+            if (daysHeld > 0) {
+                avgDailyReturn = Math.pow(1 + actualReturn, 1/daysHeld) - 1;
+            }
+            
+            // Project to monthly and annual (compounded)
+            const expectedMonthlyReturn = Math.pow(1 + avgDailyReturn, 30) - 1;
+            const expectedAnnualReturn = Math.pow(1 + avgDailyReturn, 365) - 1;
+            
+            return {
+                monthlyValue: totalInvestment * expectedMonthlyReturn,
+                monthlyPercentage: expectedMonthlyReturn * 100,
+                annualValue: totalInvestment * expectedAnnualReturn,
+                annualPercentage: expectedAnnualReturn * 100,
+                daysHeld: daysHeld,
+                avgDailyReturn: avgDailyReturn * 100
+            };
+        }
+
+        // Calculate summary statistics
+        function calculateSummary() {
+            const investmentData = getInvestmentData();
+            
+            if (investmentData.length === 0) {
+                return {
+                    totalInvestment: 0,
+                    totalUnits: 0,
+                    currentValue: 0,
+                    currentUnitValue: 0,
+                    totalGainLoss: 0,
+                    returnPercent: 0,
+                    avgUnitCost: 0,
+                    highestUnitValue: 0,
+                    lowestUnitValue: 0
+                };
+            }
+            
+            const totalInvestment = investmentData.reduce((sum, item) => {
+                return sum + item.transactions.reduce((transactionSum, transaction) => transactionSum + transaction.amount, 0);
+            }, 0);
+            
+            const totalUnits = investmentData.reduce((sum, item) => {
+                return sum + item.transactions.reduce((transactionSum, transaction) => transactionSum + transaction.units, 0);
+            }, 0);
+            
+            const currentValue = investmentData.reduce((sum, item) => sum + item.currentValue, 0);
+            const currentUnitValue = currentValue / totalUnits;
+            
+            const totalGainLoss = currentValue - totalInvestment;
+            const returnPercent = totalInvestment > 0 ? (totalGainLoss / totalInvestment) * 100 : 0;
+            
+            const avgUnitCost = totalUnits > 0 ? totalInvestment / totalUnits : 0;
+            
+            // Calculate highest and lowest unit values across all investments
+            let highestUnitValue = 0;
+            let lowestUnitValue = Number.MAX_VALUE;
+            
+            investmentData.forEach(item => {
+                if (item.currentUnitValue > highestUnitValue) highestUnitValue = item.currentUnitValue;
+                if (item.currentUnitValue < lowestUnitValue) lowestUnitValue = item.currentUnitValue;
+            });
+            
+            if (lowestUnitValue === Number.MAX_VALUE) lowestUnitValue = 0;
+            
+            return {
+                totalInvestment,
+                totalUnits,
+                currentValue,
+                currentUnitValue,
+                totalGainLoss,
+                returnPercent,
+                avgUnitCost,
+                highestUnitValue,
+                lowestUnitValue
+            };
+        }
+
+        // Calculate returns (daily, monthly, annual)
+        function calculateReturns() {
+            const investmentData = getInvestmentData();
+            const returnsHistory = getReturnsHistory();
+            const today = new Date().toISOString().split('T')[0];
+            
+            if (investmentData.length === 0) {
+                return {
+                    daily: 0,
+                    monthly: 0,
+                    annual: 0
+                };
+            }
+            
+            // Calculate based on recent performance
+            const summary = calculateSummary();
+            const totalInvestment = summary.totalInvestment;
+            const totalGainLoss = summary.totalGainLoss;
+            
+            let annualReturn = 0;
+            let monthlyReturn = 0;
+            let dailyReturn = 0;
+            
+            if (totalInvestment > 0) {
+                // Calculate annual return based on time-weighted return
+                const earliestDate = new Date(Math.min(...investmentData.flatMap(item => 
+                    item.transactions.map(transaction => new Date(transaction.date))
+                )));
+                const today = new Date();
+                const daysHeld = Math.max(1, (today - earliestDate) / (1000 * 60 * 60 * 24));
+                const yearsHeld = daysHeld / 365;
+                
+                annualReturn = yearsHeld > 0 ? (Math.pow(1 + (totalGainLoss / totalInvestment), 1 / yearsHeld) - 1) * 100 : 0;
+                monthlyReturn = annualReturn / 12;
+                dailyReturn = annualReturn / 365;
+            }
+            
+            // Save to history
+            returnsHistory[today] = {
+                daily: dailyReturn,
+                monthly: monthlyReturn,
+                annual: annualReturn
+            };
+            saveReturnsHistory(returnsHistory);
+            
+            return {
+                daily: dailyReturn,
+                monthly: monthlyReturn,
+                annual: annualReturn
+            };
+        }
+
+        // Update the UI with calculated data
+        function updateUI() {
+            const summary = calculateSummary();
+            const investmentData = getInvestmentData();
+            const returns = calculateReturns();
+            
+            // Update summary stats
+            document.getElementById('total-value').textContent = formatCurrency(summary.currentValue);
+            document.getElementById('total-units').textContent = summary.totalUnits.toFixed(3);
+            document.getElementById('current-unit-value').textContent = formatCurrency(summary.currentUnitValue);
+            document.getElementById('total-investment').textContent = formatCurrency(summary.totalInvestment);
+            
+            // Style gain/loss based on value
+            const gainLossElement = document.getElementById('total-gain-loss');
+            gainLossElement.textContent = formatCurrency(summary.totalGainLoss);
+            gainLossElement.className = `stat-value ${summary.totalGainLoss >= 0 ? 'profit' : 'loss'}`;
+            
+            // Style return percentage
+            const returnElement = document.getElementById('return-percent');
+            returnElement.textContent = formatPercentage(summary.returnPercent);
+            returnElement.className = `stat-value ${summary.returnPercent >= 0 ? 'profit' : 'loss'}`;
+            
+            // Update returns
+            document.getElementById('daily-return').textContent = formatPercentage(returns.daily);
+            document.getElementById('daily-return').className = `return-value ${returns.daily >= 0 ? 'profit' : 'loss'}`;
+            
+            document.getElementById('monthly-return').textContent = formatPercentage(returns.monthly);
+            document.getElementById('monthly-return').className = `return-value ${returns.monthly >= 0 ? 'profit' : 'loss'}`;
+            
+            document.getElementById('annual-return').textContent = formatPercentage(returns.annual);
+            document.getElementById('annual-return').className = `return-value ${returns.annual >= 0 ? 'profit' : 'loss'}`;
+            
+            // Update performance metrics
+            document.getElementById('avg-unit-cost').textContent = formatCurrency(summary.avgUnitCost);
+            document.getElementById('highest-unit').textContent = formatCurrency(summary.highestUnitValue);
+            document.getElementById('lowest-unit').textContent = formatCurrency(summary.lowestUnitValue);
+            
+            // Update investment list
+            const investmentList = document.getElementById('investment-list');
+            const emptyState = document.getElementById('empty-investments');
+            
+            if (investmentData.length === 0) {
+                investmentList.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                investmentList.style.display = 'block';
+                emptyState.style.display = 'none';
+                
+                investmentList.innerHTML = '';
+                
+                investmentData.forEach(item => {
+                    const plPercentage = calculatePLPercentage(item);
+                    const plAbsolute = item.currentValue - item.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+                    const expectedReturns = calculateExpectedReturns(item);
+                    const totalInvestment = item.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+                    const totalUnits = item.transactions.reduce((sum, transaction) => sum + transaction.units, 0);
+                    const avgUnitCost = totalInvestment / totalUnits;
+                    
+                    const li = document.createElement('li');
+                    li.className = 'investment-item';
+                    li.innerHTML = `
+                        <div class="investment-header">
+                            <div class="transaction-details">
+                                <div class="investment-name">${item.name}</div>
+                                <div class="investment-details">${item.transactions.length} transaction(s) | ${totalUnits.toFixed(3)} units</div>
+                                <div class="investment-details">Invested: ${formatCurrency(totalInvestment)} | Current: ${formatCurrency(item.currentValue)}</div>
+                                <div class="pl-percentage ${plPercentage >= 0 ? 'profit' : 'loss'}">
+                                    P/L: ${formatCurrency(plAbsolute)} (${formatPercentage(plPercentage)})
+                                </div>
+                            </div>
+                            <div class="actions">
+                                <button class="action-btn edit-btn" data-id="${item.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="action-btn delete-btn" data-id="${item.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="investment-performance">
+                            <div class="performance-details">
+                                <div>Current Unit Value: ${formatCurrency(item.currentUnitValue)}</div>
+                                <div>Avg. Unit Cost: ${formatCurrency(avgUnitCost)}</div>
+                            </div>
+                            <button class="update-value-btn" data-id="${item.id}">
+                                <i class="fas fa-sync-alt"></i> Update
+                            </button>
+                        </div>
+                        <div class="expected-returns">
+                            <div class="expected-return-item">
+                                <div class="expected-return-value ${expectedReturns.monthlyValue >= 0 ? 'profit' : 'loss'}">
+                                    ${formatCurrency(expectedReturns.monthlyValue)}
+                                </div>
+                                <div class="expected-return-label">Projected Monthly (${formatPercentage(expectedReturns.monthlyPercentage)})</div>
+                            </div>
+                            <div class="expected-return-item">
+                                <div class="expected-return-value ${expectedReturns.annualValue >= 0 ? 'profit' : 'loss'}">
+                                    ${formatCurrency(expectedReturns.annualValue)}
+                                </div>
+                                <div class="expected-return-label">Projected Annual (${formatPercentage(expectedReturns.annualPercentage)})</div>
+                            </div>
+                        </div>
+                        <div class="performance-breakdown">
+                            Based on ${expectedReturns.daysHeld} days of performance | Avg. daily: ${formatPercentage(expectedReturns.avgDailyReturn)}
+                        </div>
+                        <div class="transactions-list">
+                            ${item.transactions.map((transaction, index) => `
+                                <div class="transaction-row">
+                                    <div class="transaction-info">
+                                        <div>${formatDate(transaction.date)}</div>
+                                        <div>${transaction.units} units @ ${formatCurrency(transaction.unitValue)}</div>
+                                        <div>${formatCurrency(transaction.amount)}</div>
+                                    </div>
+                                    <div class="transaction-actions">
+                                        <button class="transaction-action-btn transaction-edit-btn" data-investment-id="${item.id}" data-transaction-index="${index}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="transaction-action-btn transaction-delete-btn" data-investment-id="${item.id}" data-transaction-index="${index}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <button class="add-transaction-btn" data-id="${item.id}">
+                            <i class="fas fa-plus"></i> Add Transaction
+                        </button>
+                        <div class="mini-chart-container">
+                            <canvas id="mini-chart-${item.id}"></canvas>
+                        </div>
+                    `;
+                    investmentList.appendChild(li);
+                    
+                    // Create mini chart for this investment
+                    createMiniChart(item);
+                });
+                
+                // Add event listeners for edit and delete buttons
+                document.querySelectorAll('.edit-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        editInvestment(id);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        deleteInvestment(id);
+                    });
+                });
+                
+                // Add event listeners for update value buttons
+                document.querySelectorAll('.update-value-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        openUpdateValueModal(id);
+                    });
+                });
+                
+                // Add event listeners for add transaction buttons
+                document.querySelectorAll('.add-transaction-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        openAddTransactionModal(id);
+                    });
+                });
+                
+                // Add event listeners for edit transaction buttons
+                document.querySelectorAll('.transaction-edit-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const investmentId = parseInt(this.getAttribute('data-investment-id'));
+                        const transactionIndex = parseInt(this.getAttribute('data-transaction-index'));
+                        editTransaction(investmentId, transactionIndex);
+                    });
+                });
+                
+                // Add event listeners for delete transaction buttons
+                document.querySelectorAll('.transaction-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const investmentId = parseInt(this.getAttribute('data-investment-id'));
+                        const transactionIndex = parseInt(this.getAttribute('data-transaction-index'));
+                        deleteTransaction(investmentId, transactionIndex);
+                    });
+                });
+            }
+            
+            // Update current date
+            document.getElementById('current-date').textContent = formatDate(new Date());
+            
+            // Update charts
+            updateCharts();
+        }
+
+        // Create mini chart for an investment
+        function createMiniChart(investment) {
+            const ctx = document.getElementById(`mini-chart-${investment.id}`);
+            if (!ctx) return;
+            
+            const existingChart = Chart.getChart(ctx);
+            if (existingChart) {
+                existingChart.destroy();
+            }
+            
+            // Prepare data for mini chart
+            const dates = investment.history.map(record => record.date);
+            const unitValues = investment.history.map(record => record.unitValue);
+            
+            // Calculate color based on performance
+            const firstValue = unitValues[0];
+            const lastValue = unitValues[unitValues.length - 1];
+            const borderColor = lastValue >= firstValue ? '#2ecc71' : '#e74c3c';
+            const backgroundColor = lastValue >= firstValue ? 'rgba(46, 204, 113, 0.1)' : 'rgba(231, 76, 60, 0.1)';
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates.map(date => formatDate(date)),
+                    datasets: [{
+                        data: unitValues,
+                        borderColor: borderColor,
+                        backgroundColor: backgroundColor,
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create and update the charts
+        let valueChart, returnChart, allocationChart, performanceChart;
+
+        function updateCharts() {
+            const investmentData = getInvestmentData();
+            const returnsHistory = getReturnsHistory();
+            
+            if (investmentData.length === 0) {
+                return;
+            }
+            
+            // Prepare data for value chart
+            const dates = [];
+            const totalValues = [];
+            const unitValues = [];
+            
+            investmentData.forEach(investment => {
+                investment.history.forEach(record => {
+                    dates.push(record.date);
+                    totalValues.push(record.totalValue);
+                    unitValues.push(record.unitValue);
+                });
+            });
+            
+            // Sort by date
+            const sortedIndices = dates
+                .map((date, index) => ({ date, index }))
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                .map(item => item.index);
+            
+            const sortedDates = sortedIndices.map(i => dates[i]);
+            const sortedTotalValues = sortedIndices.map(i => totalValues[i]);
+            const sortedUnitValues = sortedIndices.map(i => unitValues[i]);
+            
+            // Value Chart
+            const valueCtx = document.getElementById('value-chart');
+            if (valueChart) {
+                valueChart.destroy();
+            }
+            
+            valueChart = new Chart(valueCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.map(date => formatDate(date)),
+                    datasets: [
+                        {
+                            label: 'Portfolio Value',
+                            data: sortedTotalValues,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Unit Value',
+                            data: sortedUnitValues,
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Allocation Chart (Pie Chart)
+            const allocationCtx = document.getElementById('allocation-chart');
+            if (allocationChart) {
+                allocationChart.destroy();
+            }
+            
+            const investmentNames = investmentData.map(item => item.name);
+            const investmentValues = investmentData.map(item => item.currentValue);
+            const backgroundColors = [
+                '#3498db', '#2ecc71', '#e74c3c', '#f39c12', '#9b59b6',
+                '#1abc9c', '#d35400', '#c0392b', '#16a085', '#8e44ad'
+            ];
+            
+            allocationChart = new Chart(allocationCtx, {
+                type: 'pie',
+                data: {
+                    labels: investmentNames,
+                    datasets: [{
+                        data: investmentValues,
+                        backgroundColor: backgroundColors.slice(0, investmentData.length),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${formatCurrency(value)} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Performance Chart (Bar Chart comparing P/L for each investment)
+            const performanceCtx = document.getElementById('performance-chart');
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+            
+            const plAbsolute = investmentData.map(item => {
+                const totalInvestment = item.transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+                return item.currentValue - totalInvestment;
+            });
+            const plPercentage = investmentData.map(item => calculatePLPercentage(item));
+            
+            performanceChart = new Chart(performanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: investmentNames,
+                    datasets: [
+                        {
+                            label: 'P/L (EGP)',
+                            data: plAbsolute,
+                            backgroundColor: plAbsolute.map(value => value >= 0 ? 'rgba(46, 204, 113, 0.7)' : 'rgba(231, 76, 60, 0.7)'),
+                            yAxisID: 'y',
+                            order: 2
+                        },
+                        {
+                            label: 'P/L (%)',
+                            data: plPercentage,
+                            type: 'line',
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'P/L (EGP)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'P/L (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Return Chart - using returns history
+            const returnCtx = document.getElementById('return-chart');
+            const returnDates = Object.keys(returnsHistory).sort();
+            const dailyReturns = returnDates.map(date => returnsHistory[date].daily);
+            const monthlyReturns = returnDates.map(date => returnsHistory[date].monthly);
+            
+            if (returnChart) {
+                returnChart.destroy();
+            }
+            
+            returnChart = new Chart(returnCtx, {
+                type: 'bar',
+                data: {
+                    labels: returnDates.map(date => formatDate(date)),
+                    datasets: [
+                        {
+                            label: 'Daily Return %',
+                            data: dailyReturns,
+                            backgroundColor: 'rgba(52, 152, 219, 0.7)',
+                            order: 2
+                        },
+                        {
+                            label: 'Monthly Return %',
+                            data: monthlyReturns,
+                            type: 'line',
+                            order: 1,
+                            borderColor: '#2ecc71',
+                            borderWidth: 3,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Add or update investment
+        function saveInvestment(investment) {
+            const investmentData = getInvestmentData();
+            
+            if (investment.id) {
+                // Update existing investment - preserve history and current values
+                const index = investmentData.findIndex(item => item.id === investment.id);
+                if (index !== -1) {
+                    // Preserve the existing history and current values
+                    const existingInvestment = investmentData[index];
+                    
+                    investmentData[index] = {
+                        ...existingInvestment, // Keep all existing properties
+                        name: investment.name,
+                        // Preserve currentUnitValue and currentValue unless they're being updated
+                        currentUnitValue: investment.currentUnitValue || existingInvestment.currentUnitValue,
+                        currentValue: investment.currentValue || existingInvestment.currentValue
+                    };
+                }
+            } else {
+                // Add new investment
+                investment.id = Date.now();
+                investment.transactions = [
+                    { 
+                        date: investment.date, 
+                        amount: investment.amount, 
+                        units: investment.units, 
+                        unitValue: investment.unitValue 
+                    }
+                ];
+                investment.currentUnitValue = investment.unitValue;
+                investment.currentValue = investment.amount;
+                investment.history = [
+                    { 
+                        date: investment.date, 
+                        unitValue: investment.unitValue, 
+                        totalValue: investment.amount 
+                    }
+                ];
+                investmentData.push(investment);
+            }
+            
+            saveInvestmentData(investmentData);
+            updateUI();
+        }
+
+        // Add transaction to existing investment
+        function addTransactionToInvestment(investmentId, transaction) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === investmentId);
+            
+            if (investment) {
+                investment.transactions.push(transaction);
+                
+                // Update current value based on all transactions
+                const totalUnits = investment.transactions.reduce((sum, t) => sum + t.units, 0);
+                investment.currentValue = totalUnits * investment.currentUnitValue;
+                
+                saveInvestmentData(investmentData);
+                updateUI();
+            }
+        }
+
+        // Edit transaction in an investment
+        function editTransaction(investmentId, transactionIndex) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === investmentId);
+            
+            if (investment && investment.transactions[transactionIndex]) {
+                const transaction = investment.transactions[transactionIndex];
+                
+                document.getElementById('transaction-investment-id').value = investmentId;
+                document.getElementById('transaction-index').value = transactionIndex;
+                document.getElementById('transaction-date').value = transaction.date;
+                document.getElementById('transaction-amount').value = transaction.amount;
+                document.getElementById('transaction-units').value = transaction.units;
+                document.getElementById('transaction-unit-value').value = transaction.unitValue;
+                
+                document.getElementById('transaction-modal-title').textContent = 'Edit Transaction';
+                document.getElementById('transaction-submit-btn').textContent = 'Update Transaction';
+                
+                document.getElementById('transaction-modal').style.display = 'flex';
+            }
+        }
+
+        // Delete transaction from an investment
+        function deleteTransaction(investmentId, transactionIndex) {
+            if (confirm('Are you sure you want to delete this transaction?')) {
+                const investmentData = getInvestmentData();
+                const investment = investmentData.find(item => item.id === investmentId);
+                
+                if (investment && investment.transactions[transactionIndex]) {
+                    investment.transactions.splice(transactionIndex, 1);
+                    
+                    // Update current value based on remaining transactions
+                    const totalUnits = investment.transactions.reduce((sum, t) => sum + t.units, 0);
+                    investment.currentValue = totalUnits * investment.currentUnitValue;
+                    
+                    saveInvestmentData(investmentData);
+                    updateUI();
+                }
+            }
+        }
+
+        // Update transaction in an investment
+        function updateTransaction(investmentId, transactionIndex, updatedTransaction) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === investmentId);
+            
+            if (investment && investment.transactions[transactionIndex]) {
+                investment.transactions[transactionIndex] = updatedTransaction;
+                
+                // Update current value based on all transactions
+                const totalUnits = investment.transactions.reduce((sum, t) => sum + t.units, 0);
+                investment.currentValue = totalUnits * investment.currentUnitValue;
+                
+                saveInvestmentData(investmentData);
+                updateUI();
+            }
+        }
+
+        // Edit investment
+        function editInvestment(id) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === id);
+            
+            if (investment) {
+                document.getElementById('investment-id').value = investment.id;
+                document.getElementById('investment-name').value = investment.name;
+                document.getElementById('investment-date').value = investment.transactions[0].date;
+                document.getElementById('investment-amount').value = investment.transactions[0].amount;
+                document.getElementById('investment-units').value = investment.transactions[0].units;
+                document.getElementById('investment-unit-value').value = investment.transactions[0].unitValue;
+                
+                document.getElementById('modal-title').textContent = 'Edit Investment';
+                document.getElementById('form-submit-btn').textContent = 'Update Investment';
+                
+                document.getElementById('investment-modal').style.display = 'flex';
+            }
+        }
+
+        // Delete investment
+        function deleteInvestment(id) {
+            if (confirm('Are you sure you want to delete this investment?')) {
+                const investmentData = getInvestmentData();
+                const updatedData = investmentData.filter(item => item.id !== id);
+                saveInvestmentData(updatedData);
+                updateUI();
+            }
+        }
+
+        // Open update value modal
+        function openUpdateValueModal(id) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === id);
+            
+            if (investment) {
+                document.getElementById('update-investment-id').value = investment.id;
+                document.getElementById('update-investment-name').textContent = investment.name;
+                document.getElementById('update-unit-value').value = investment.currentUnitValue;
+                
+                document.getElementById('update-value-modal').style.display = 'flex';
+            }
+        }
+
+        // Open add transaction modal
+        function openAddTransactionModal(id) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === id);
+            
+            if (investment) {
+                document.getElementById('transaction-investment-id').value = investment.id;
+                document.getElementById('transaction-index').value = '';
+                
+                // Set current date as default
+                const today = new Date();
+                const formattedDate = today.toISOString().split('T')[0];
+                document.getElementById('transaction-date').value = formattedDate;
+                
+                document.getElementById('transaction-modal-title').textContent = 'Add Transaction';
+                document.getElementById('transaction-submit-btn').textContent = 'Add Transaction';
+                
+                document.getElementById('transaction-modal').style.display = 'flex';
+            }
+        }
+
+        // Update investment value manually
+        function updateInvestmentValue(id, newUnitValue) {
+            const investmentData = getInvestmentData();
+            const investment = investmentData.find(item => item.id === id);
+            
+            if (investment) {
+                investment.currentUnitValue = parseFloat(newUnitValue);
+                const totalUnits = investment.transactions.reduce((sum, transaction) => sum + transaction.units, 0);
+                investment.currentValue = totalUnits * investment.currentUnitValue;
+                
+                // Add to history
+                const today = new Date().toISOString().split('T')[0];
+                investment.history.push({
+                    date: today,
+                    unitValue: investment.currentUnitValue,
+                    totalValue: investment.currentValue
+                });
+                
+                saveInvestmentData(investmentData);
+                updateUI();
+            }
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize data
+            initializeData();
+            
+            // Update UI with current data
+            updateUI();
+            
+            // Set current date as default in form
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            document.getElementById('investment-date').value = formattedDate;
+            
+            // Tab functionality
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs and contents
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Modal functionality
+            const modal = document.getElementById('investment-modal');
+            const updateModal = document.getElementById('update-value-modal');
+            const transactionModal = document.getElementById('transaction-modal');
+            const addBtn = document.getElementById('add-investment-btn');
+            const closeBtns = document.querySelectorAll('.close-modal');
+            
+            addBtn.addEventListener('click', function() {
+                // Reset form
+                document.getElementById('investment-form').reset();
+                document.getElementById('investment-id').value = '';
+                document.getElementById('modal-title').textContent = 'Add Investment';
+                document.getElementById('form-submit-btn').textContent = 'Add Investment';
+                document.getElementById('investment-date').value = formattedDate;
+                
+                modal.style.display = 'flex';
+            });
+            
+            closeBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    modal.style.display = 'none';
+                    updateModal.style.display = 'none';
+                    transactionModal.style.display = 'none';
+                });
+            });
+            
+            window.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+                if (event.target === updateModal) {
+                    updateModal.style.display = 'none';
+                }
+                if (event.target === transactionModal) {
+                    transactionModal.style.display = 'none';
+                }
+            });
+            
+            // Form submission for adding/editing investments
+            document.getElementById('investment-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = {
+                    id: document.getElementById('investment-id').value ? parseInt(document.getElementById('investment-id').value) : null,
+                    name: document.getElementById('investment-name').value,
+                    date: document.getElementById('investment-date').value,
+                    amount: parseFloat(document.getElementById('investment-amount').value),
+                    units: parseFloat(document.getElementById('investment-units').value),
+                    unitValue: parseFloat(document.getElementById('investment-unit-value').value)
+                };
+                
+                saveInvestment(formData);
+                
+                // Close modal and reset form
+                modal.style.display = 'none';
+                this.reset();
+            });
+            
+            // Form submission for updating investment values
+            document.getElementById('update-value-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = parseInt(document.getElementById('update-investment-id').value);
+                const newUnitValue = document.getElementById('update-unit-value').value;
+                
+                updateInvestmentValue(id, newUnitValue);
+                
+                // Close modal and reset form
+                updateModal.style.display = 'none';
+                this.reset();
+            });
+            
+            // Form submission for adding/editing transactions
+            document.getElementById('transaction-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const investmentId = parseInt(document.getElementById('transaction-investment-id').value);
+                const transactionIndex = document.getElementById('transaction-index').value;
+                const transaction = {
+                    date: document.getElementById('transaction-date').value,
+                    amount: parseFloat(document.getElementById('transaction-amount').value),
+                    units: parseFloat(document.getElementById('transaction-units').value),
+                    unitValue: parseFloat(document.getElementById('transaction-unit-value').value)
+                };
+                
+                if (transactionIndex) {
+                    // Editing existing transaction
+                    updateTransaction(investmentId, parseInt(transactionIndex), transaction);
+                } else {
+                    // Adding new transaction
+                    addTransactionToInvestment(investmentId, transaction);
+                }
+                
+                // Close modal and reset form
+                transactionModal.style.display = 'none';
+                this.reset();
+            });
+        });
+    </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{console.warn('SW register failed');});
+}
+</script>
+
+</body>
+</html>

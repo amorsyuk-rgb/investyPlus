@@ -1,1 +1,1 @@
-invy+ integrated build (analytics inside app). Open invy6.html. Use header buttons to Sync, Sign out, and open Analytics.
+invy+ PRO package. Deploy to Netlify via app.netlify.com/drop
